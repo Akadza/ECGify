@@ -1,24 +1,21 @@
 package com.rimuru.android.ecgify.ui.home
 
 import android.Manifest
-import android.app.Activity
 import android.content.Intent
-import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
-import com.labters.documentscanner.DocumentScannerView
+import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.FileProvider
-import androidx.navigation.fragment.NavHostFragment
+import androidx.core.view.isVisible
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.rimuru.android.ecgify.databinding.BottomSheetChooseSourceBinding
 import com.rimuru.android.ecgify.utils.ImageUtils
-import java.io.File
+import com.rimuru.android.ecgify.utils.PermissionUtils
 
 class SourceBottomSheet : BottomSheetDialogFragment() {
 
@@ -27,15 +24,55 @@ class SourceBottomSheet : BottomSheetDialogFragment() {
 
     private var tempUri: Uri? = null
 
-    private val cameraLauncher =
-        registerForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
-            if (ok) sendUriToManual(tempUri!!)
-        }
+    // Создаем callback для передачи URI
+    private var onImageSelected: ((Uri) -> Unit)? = null
 
-    private val galleryLauncher =
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            if (uri != null) sendUriToManual(uri)
+    fun setOnImageSelectedListener(listener: (Uri) -> Unit) {
+        onImageSelected = listener
+    }
+
+    private val cameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            tempUri = ImageUtils.createTempImageUri(requireContext())
+            cameraLauncher.launch(tempUri)
+        } else {
+            showPermissionDeniedDialog("Камера")
         }
+    }
+
+    private val storagePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            galleryLauncher.launch("image/*")
+        } else {
+            showPermissionDeniedDialog("Хранилище")
+        }
+    }
+
+    private val cameraLauncher = registerForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && tempUri != null) {
+            onImageSelected?.invoke(tempUri!!)
+            dismiss()
+        } else {
+            Toast.makeText(requireContext(), "Не удалось сделать фото", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private val galleryLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            onImageSelected?.invoke(uri)
+            dismiss()
+        } else {
+            Toast.makeText(requireContext(), "Не удалось выбрать изображение", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -48,24 +85,45 @@ class SourceBottomSheet : BottomSheetDialogFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.optionCamera.setOnClickListener {
-            tempUri = ImageUtils.createTempImageUri(requireContext())
-            cameraLauncher.launch(tempUri)
-            dismiss()
+            if (PermissionUtils.isCameraGranted(requireContext())) {
+                tempUri = ImageUtils.createTempImageUri(requireContext())
+                cameraLauncher.launch(tempUri)
+            } else {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
         }
 
         binding.optionGallery.setOnClickListener {
-            galleryLauncher.launch("image/*")
-            dismiss()
+            val permission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                Manifest.permission.READ_MEDIA_IMAGES
+            } else {
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            }
+
+            if (PermissionUtils.isStorageGranted(requireContext())) {
+                galleryLauncher.launch("image/*")
+            } else {
+                storagePermissionLauncher.launch(permission)
+            }
         }
     }
 
-    private fun sendUriToManual(uri: Uri) {
-        val action = HomeFragmentDirections
-            .actionHomeFragmentToManualSelectionFragment(uri.toString())
+    private fun showPermissionDeniedDialog(permissionName: String) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Разрешение отклонено")
+            .setMessage("Для работы с $permissionName необходимо предоставить разрешение в настройках приложения")
+            .setPositiveButton("Настройки") { _, _ ->
+                openAppSettings()
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
 
-        (parentFragment as? NavHostFragment)
-            ?.navController
-            ?.navigate(action)
+    private fun openAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", requireContext().packageName, null)
+        }
+        startActivity(intent)
     }
 
     override fun onDestroyView() {

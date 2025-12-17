@@ -1,28 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:background="@color/background_light"
+    android:padding="0dp">
 
+    <!-- Заголовок -->
+    <TextView
+        android:id="@+id/title_text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Выделите границы ЭКГ"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/primary"
+        android:gravity="center"
+        android:padding="16dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Документ сканер - занимает все пространство до кнопки -->
     <com.labters.documentscanner.DocumentScannerView
         android:id="@+id/document_scanner"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:background="@color/surface_light"
+        app:layout_constraintTop_toBottomOf="@id/title_text"
+        android:layout_marginBottom="20dp"
+        app:layout_constraintBottom_toTopOf="@+id/confirm_button"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Кнопка подтверждения - привязана к верхней границе BottomNavigationView -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/confirm_button"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="8dp"
+        android:text="Подтвердить и обработать ЭКГ"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:enabled="false"
+        android:backgroundTint="@color/primary"
+        android:textColor="@color/white"
+        app:cornerRadius="12dp"
+        app:elevation="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/bottom_nav_placeholder"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Плейсхолдер для нижнего меню -->
+    <View
+        android:id="@+id/bottom_nav_placeholder"
+        android:layout_width="0dp"
+        android:layout_height="130dp"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Прогресс бар - по центру -->
     <ProgressBar
         android:id="@+id/progress_bar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_margin="16dp"
-        android:visibility="gone" />
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <Button
-        android:id="@+id/confirm_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Подтвердить и обработать ЭКГ" />
-
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

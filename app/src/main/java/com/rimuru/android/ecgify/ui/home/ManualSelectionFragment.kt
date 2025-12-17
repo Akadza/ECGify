@@ -1,33 +1,24 @@
 package com.rimuru.android.ecgify.ui.home
 
-import android.Manifest
-import android.content.ContentValues
-import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.Toast
-import androidx.core.content.ContextCompat
-import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import com.rimuru.android.ecgify.R
 import com.rimuru.android.ecgify.databinding.FragmentManualSelectionBinding
 import com.rimuru.android.ecgify.utils.ImageUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.IOException
+import java.io.InputStream
 
 class ManualSelectionFragment : Fragment() {
 
@@ -35,8 +26,11 @@ class ManualSelectionFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val args by navArgs<ManualSelectionFragmentArgs>()
+    private var currentBitmap: Bitmap? = null
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
         _binding = FragmentManualSelectionBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -44,23 +38,79 @@ class ManualSelectionFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        lifecycleScope.launch(Dispatchers.IO) {
-            val bitmap = loadBitmap(Uri.parse(args.imageUri))
-            withContext(Dispatchers.Main) {
-                if (bitmap == null) {
-                    Toast.makeText(requireContext(), "Ошибка загрузки", Toast.LENGTH_SHORT).show()
-                    findNavController().popBackStack()
-                    return@withContext
-                }
+        initDocumentScanner()
+        setupClickListeners()
 
-                binding.documentScanner.setImage(bitmap)
-                binding.documentScanner.setOnLoadListener { loading ->
-                    binding.progressBar.visibility = if (loading) View.VISIBLE else View.GONE
+        // Используем анонимный объект как в старом проекте
+        binding.documentScanner.viewTreeObserver.addOnGlobalLayoutListener(
+            object : ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    // Удаляем слушатель после первого вызова
+                    binding.documentScanner.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    loadAndSetImage()
+                }
+            }
+        )
+    }
+
+    private fun initDocumentScanner() {
+        binding.documentScanner.setOnLoadListener { loading ->
+            binding.progressBar.visibility = if (loading) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun loadAndSetImage() {
+        val uriString = args.imageUri
+        val uri = Uri.parse(uriString)
+
+        binding.progressBar.visibility = View.VISIBLE
+        binding.confirmButton.isEnabled = false
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                // Используем метод из старого проекта
+                val bitmap = loadBitmapFromUri(uri)
+
+                withContext(Dispatchers.Main) {
+                    if (bitmap == null) {
+                        Toast.makeText(requireContext(), "Не удалось загрузить изображение", Toast.LENGTH_SHORT).show()
+                        findNavController().popBackStack()
+                        return@withContext
+                    }
+
+                    currentBitmap = bitmap
+                    binding.documentScanner.setImage(bitmap)
+                    binding.confirmButton.isEnabled = true
+                    binding.progressBar.visibility = View.GONE
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Ошибка загрузки изображения", Toast.LENGTH_SHORT).show()
+                    findNavController().popBackStack()
                 }
             }
         }
+    }
 
-        binding.confirmButton.setOnClickListener { cropAndProceed() }
+    /**
+     * Загружает Bitmap из переданного URI (аналогично старому проекту)
+     */
+    private fun loadBitmapFromUri(uri: Uri): Bitmap? {
+        return try {
+            requireContext().contentResolver.openInputStream(uri)?.use { inputStream ->
+                BitmapFactory.decodeStream(inputStream)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun setupClickListeners() {
+        binding.confirmButton.setOnClickListener {
+            cropAndProceed()
+        }
     }
 
     private fun cropAndProceed() {
@@ -69,19 +119,24 @@ class ManualSelectionFragment : Fragment() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val cropped = binding.documentScanner.getCroppedImage()
-                    ?: throw Exception("Ошибка обрезки")
+                val cropped: Bitmap = binding.documentScanner.getCroppedImage()
+                    ?: throw Exception("Не удалось обрезать изображение")
 
-                val uri = ImageUtils.saveBitmapToCache(requireContext(), cropped)
-                    ?: throw Exception("Не удалось сохранить")
+                // Сохраняем в галерею
+                val galleryUri = ImageUtils.saveToGallery(
+                    requireContext(),
+                    cropped,
+                    "ECG_${System.currentTimeMillis()}"
+                ) ?: throw Exception("Ошибка сохранения в галерею")
 
                 withContext(Dispatchers.Main) {
-                    navigateToProcessing(uri.toString())
+                    navigateToProcessing(galleryUri.toString())
                 }
 
             } catch (e: Exception) {
+                e.printStackTrace()
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), e.message, Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(), "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
                     binding.progressBar.visibility = View.GONE
                     binding.confirmButton.isEnabled = true
                 }
@@ -90,18 +145,21 @@ class ManualSelectionFragment : Fragment() {
     }
 
     private fun navigateToProcessing(uri: String) {
-        val action = ManualSelectionFragmentDirections
-            .actionManualSelectionFragmentToResultsFragment(uri)
-        findNavController().navigate(action)
-    }
+        try {
+            val action = ManualSelectionFragmentDirections
+                .actionManualSelectionFragmentToResultsFragment(uri)
 
-    private fun loadBitmap(uri: Uri): Bitmap? =
-        requireContext().contentResolver.openInputStream(uri)?.use {
-            BitmapFactory.decodeStream(it)
+            findNavController().navigate(action)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(requireContext(), "Ошибка навигации", Toast.LENGTH_SHORT).show()
         }
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        currentBitmap?.recycle()
+        currentBitmap = null
         _binding = null
     }
 }

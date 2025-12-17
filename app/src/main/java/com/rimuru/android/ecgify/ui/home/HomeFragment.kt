@@ -1,12 +1,12 @@
 package com.rimuru.android.ecgify.ui.home
 
-import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import com.rimuru.android.ecgify.databinding.FragmentHomeBinding
 
 class HomeFragment : Fragment() {
@@ -18,17 +18,27 @@ class HomeFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-
-
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
         binding.fabMain.setOnClickListener {
-            SourceBottomSheet().show(parentFragmentManager, "SourceBottomSheet")
+            val bottomSheet = SourceBottomSheet().apply {
+                setOnImageSelectedListener { uri ->
+                    navigateToManualSelection(uri)
+                }
+            }
+            bottomSheet.show(parentFragmentManager, "SourceBottomSheet")
         }
+    }
+
+    private fun navigateToManualSelection(uri: Uri) {
+        val action = HomeFragmentDirections
+            .actionHomeFragmentToManualSelectionFragment(uri.toString())
+        findNavController().navigate(action)
     }
 
     override fun onDestroyView() {
