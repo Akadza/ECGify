@@ -22,4 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "ECGify"
 include(":app")
- 
+include(":sdk")
