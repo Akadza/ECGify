@@ -144,11 +144,6 @@ data class EcgData(
 }
 
 /**
- * Ошибка оцифровки
- */
-class DigitizationError(message: String) : Exception(message)
-
-/**
  * Вспомогательная функция для преобразования Point в IntPoint
  */
 fun Point.toIntPoint(): IntPoint {
