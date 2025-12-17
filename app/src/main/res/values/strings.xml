@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">ECGify</string>
+    <string name="home_subtitle">Turn paper ECG into digital\nin seconds</string>
+    <string name="home_ai_tag">AI-powered recognition</string>
+    <string name="bottom_sheet_title">How do you want to start?</string>
+    <string name="take_photo">Take photo</string>
+    <string name="take_photo_subtitle">Open camera right now</string>
+    <string name="choose_gallery">Choose from gallery</string>
+    <string name="gallery_subtitle">Already have a photo?</string>
+</resources>

@@ -1,0 +1,28 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="Base.Theme.ECGify" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#1E1E1E</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorPrimaryContainer">#003087</item>
+        <item name="colorOnPrimaryContainer">#BBDEFB</item>
+
+        <!-- Accent -->
+        <item name="colorSecondary">#00E676</item>
+        <item name="colorOnSecondary">@color/black</item>
+
+        <!-- Background & Surface -->
+        <item name="android:colorBackground">#121212</item>
+        <item name="colorSurface">#1E1E1E</item>
+        <item name="colorOnSurface">#E4E4E4</item>
+        <item name="colorOnSurfaceVariant">#BBBBBB</item>
+
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+
+
+
+    </style>
+
+    <style name="Theme.ECGify" parent="Base.Theme.ECGify" />
+</resources>

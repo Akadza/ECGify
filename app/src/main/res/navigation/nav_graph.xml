@@ -1,0 +1,83 @@
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <!-- HOME -->
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.rimuru.android.ecgify.ui.home.HomeFragment"
+        android:label="Home"
+        tools:layout="@layout/fragment_home">
+
+        <action
+            android:id="@+id/action_homeFragment_to_manualSelectionFragment"
+            app:destination="@id/manualSelectionFragment" />
+
+        <action
+            android:id="@+id/action_home_to_results"
+            app:destination="@id/resultsFragment" />
+
+        <action
+            android:id="@+id/action_home_to_history"
+            app:destination="@id/historyFragment" />
+
+        <action
+            android:id="@+id/action_home_to_ai"
+            app:destination="@id/aiFragment" />
+
+    </fragment>
+
+    <!-- MANUAL SELECTION -->
+    <fragment
+        android:id="@+id/manualSelectionFragment"
+        android:name="com.rimuru.android.ecgify.ui.home.ManualSelectionFragment"
+        android:label="Manual Selection">
+
+        <argument
+            android:name="image_uri"
+            app:argType="string"
+            app:nullable="false" />
+
+        <action
+            android:id="@+id/action_manualSelectionFragment_to_resultsFragment"
+            app:destination="@id/resultsFragment" />
+    </fragment>
+
+    <!-- RESULTS -->
+    <fragment
+        android:id="@+id/resultsFragment"
+        android:name="com.rimuru.android.ecgify.ui.home.ResultsFragment"
+        android:label="Results"
+        tools:layout="@layout/fragment_placeholder">
+
+        <argument
+            android:name="image_uri"
+            app:argType="string"
+            app:nullable="false" />
+
+        <action
+            android:id="@+id/action_results_to_home"
+            app:destination="@id/homeFragment" />
+
+        <action
+            android:id="@+id/action_results_to_history"
+            app:destination="@id/historyFragment" />
+    </fragment>
+
+    <!-- HISTORY -->
+    <fragment
+        android:id="@+id/historyFragment"
+        android:name="com.rimuru.android.ecgify.ui.home.HistoryFragment"
+        android:label="History"
+        tools:layout="@layout/fragment_placeholder" />
+
+    <!-- AI -->
+    <fragment
+        android:id="@+id/aiFragment"
+        android:name="com.rimuru.android.ecgify.ui.home.AiFragment"
+        android:label="AI"
+        tools:layout="@layout/fragment_placeholder" />
+
+</navigation>
