@@ -11,6 +11,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import com.rimuru.android.ecgify.databinding.ActivityMainBinding
+import org.opencv.android.OpenCVLoader
 
 class MainActivity : AppCompatActivity() {
 
@@ -25,9 +26,17 @@ class MainActivity : AppCompatActivity() {
         R.id.aiFragment
     )
 
+    companion object {
+        // Флаг для отслеживания инициализации OpenCV
+        var isOpenCVInitialized = false
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Инициализируем OpenCV
+        initOpenCV()
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -51,6 +60,22 @@ class MainActivity : AppCompatActivity() {
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
             insets
+        }
+    }
+
+    private fun initOpenCV() {
+        // Простая синхронная инициализация OpenCV
+        try {
+            val success = OpenCVLoader.initDebug()
+            if (success) {
+                isOpenCVInitialized = true
+                println("OpenCV инициализирован успешно")
+            } else {
+                println("OpenCV не удалось инициализировать")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            println("Ошибка при инициализации OpenCV: ${e.message}")
         }
     }
 

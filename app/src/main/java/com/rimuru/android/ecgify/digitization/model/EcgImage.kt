@@ -10,6 +10,8 @@ import org.opencv.core.Scalar
 import org.opencv.imgproc.Imgproc
 import java.io.ByteArrayInputStream
 import java.io.FileOutputStream
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
@@ -275,18 +277,27 @@ class EcgImage {
      * Crop the image.
      * Analog of crop()
      */
-    fun crop(r: Rectangle) {
-        val tl = r.topLeft
-        val br = r.bottomRight
-        data = data.submat(
-            tl.y.roundToInt(),
-            br.y.roundToInt(),
-            tl.x.roundToInt(),
-            br.x.roundToInt()
-        )
-        // Update dimensions
-        // Note: We can't update height/width as they are val
-        // We'll create a new instance instead
+    fun crop(r: Rectangle): EcgImage {
+        val tl = r.topLeft.toIntPoint()
+        val br = r.bottomRight.toIntPoint()
+
+        // Защищённый расчёт границ
+        val x_start = max(tl.x, 0)
+        val y_start = max(tl.y, 0)
+        val x_end = min(br.x, data.cols())
+        val y_end = min(br.y, data.rows())
+
+        val w = max(0, x_end - x_start)
+        val h = max(0, y_end - y_start)
+
+        // Если размер нулевой — возвращаем пустое изображение
+        if (w <= 0 || h <= 0) {
+            val emptyMat = Mat(1, 1, CvType.CV_8U, Scalar(0.0))
+            return EcgImage(emptyMat, colorSpace)
+        }
+
+        val croppedMat = data.submat(y_start, y_end, x_start, x_end).clone()
+        return EcgImage(croppedMat, colorSpace)
     }
 
     /**

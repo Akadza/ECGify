@@ -64,33 +64,37 @@ class Digitizer(
      * Создает Bitmap с трассировкой (аналог сохранения _trace.png)
      */
     private fun createTraceBitmap(original: EcgImage, trace: EcgImage, rect: Rectangle): Bitmap {
-        // Копируем оригинальное изображение
         val result = original.copy()
+        val resultMat = result.getData()  // Оригинальный размер
 
-        // Получаем данные оригинального изображения и трассировки
-        val resultData = result.getData()
-        val traceData = trace.getData()
+        val traceMat = trace.getData()    // Размер обрезанной области (после preprocess)
 
-        // Вставляем трассировку в область обрезки
         val tl = rect.topLeft.toIntPoint()
         val br = rect.bottomRight.toIntPoint()
 
-        // Определяем область для вставки
-        val roi = Rect(tl.x, tl.y, br.x - tl.x, br.y - tl.y)
+        // Защищаем от выхода за границы оригинального изображения
+        val x = tl.x.coerceIn(0, result.width)
+        val y = tl.y.coerceIn(0, result.height)
+        val maxW = result.width - x
+        val maxH = result.height - y
+        val w = (br.x - tl.x).coerceAtMost(maxW)
+        val h = (br.y - tl.y).coerceAtMost(maxH)
 
-        // Убедимся, что размеры совпадают
-        val traceRect = Rect(0, 0, traceData.cols(), traceData.rows())
-        val actualRoi = if (roi.width > traceData.cols() || roi.height > traceData.rows()) {
-            Rect(roi.x, roi.y, traceData.cols(), traceData.rows())
-        } else {
-            roi
+        // Если область некорректная — просто возвращаем оригинал без трассировки
+        if (w <= 0 || h <= 0) {
+            return result.toBitmap()
         }
 
-        // Копируем данные трассировки в соответствующую область
-        traceData.copyTo(resultData.submat(actualRoi))
+        // Обрезаем trace, если он больше нужной области (на всякий случай)
+        val traceW = traceMat.cols().coerceAtMost(w)
+        val traceH = traceMat.rows().coerceAtMost(h)
 
-        // Обновляем данные в результате
-        result.setData(resultData)
+        val roiInResult = org.opencv.core.Rect(x, y, traceW, traceH)
+        val roiInTrace = org.opencv.core.Rect(0, 0, traceW, traceH)
+
+        // Копируем только подходящую часть
+        val tracePart = traceMat.submat(roiInTrace)
+        tracePart.copyTo(resultMat.submat(roiInResult))
 
         return result.toBitmap()
     }

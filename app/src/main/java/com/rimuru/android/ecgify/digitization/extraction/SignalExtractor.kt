@@ -95,21 +95,19 @@ class SignalExtractor(private val n: Int) {
         // Calculate standard deviation for sliding window
         for (i in 0 until ecg.height - WINDOW + 1) {
             val x0 = 0
-            val x1 = ecg.width
+            val x1 = ecg.width - 1  // ИЗМЕНИТЬ ЗДЕСЬ: -1, чтобы диапазон был 0..(width-1)
             val y0 = i
             val y1 = i + WINDOW - 1
 
             // Extract window and calculate std
             val window = ecg.get(y0..y1, x0..x1)
             val flat = DoubleArray(window.rows() * window.cols())
-
             var index = 0
             for (row in 0 until window.rows()) {
                 for (col in 0 until window.cols()) {
                     flat[index++] = window.get(row, col)[0]
                 }
             }
-
             val std = calculateStd(flat)
             stds[i + SHIFT] = std
         }
@@ -120,7 +118,6 @@ class SignalExtractor(private val n: Int) {
 
         // Sort by std value and take first n
         val sortedPeaks = peaks.sortedByDescending { stds[it] }
-
         if (sortedPeaks.size < n) {
             throw DigitizationError("The indicated number of ROIs could not be detected.")
         }

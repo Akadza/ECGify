@@ -39,8 +39,8 @@ class Preprocessor {
     fun preprocess(ecg: EcgImage): Pair<EcgImage, Rectangle> {
         val ecgCopy = ecg.copy()
         val rect = imgPartitioning(ecgCopy)
-        ecgCopy.crop(rect)
-        val processed = gridlineRemoval(ecgCopy)
+        val cropped = ecgCopy.crop(rect)  // теперь возвращает новый EcgImage
+        val processed = gridlineRemoval(cropped)
         return Pair(processed, rect)
     }
 
